@@ -1,0 +1,36 @@
+Details
+
+I would like to perform regressions / econometric analyses with data from my MySQL database. The regressions cover random effects, fixed effects and instrument variable models. The script should be written in R and the code should be nicely structured with explanatory comments on average every 2 code lines (in English). The script should be flexible so the user can chose file paths, set the parameters for the regression like Y and X’s, chose the type of model (single or multiple), chose tests (single or multiple). After the setup, the code should run automatically without user interaction, display and save the results.
+
+The script should include following steps:
+
+1.	Set all parameters at the start of the script for the further steps (file path, predefine which regressions, tests and trimming should be performed, if SQL Script is performed or not, level of trimming, set y, x’s, fixed effects, instrument variables, …)
+2.	Install, check and load necessary libraries
+3.	Connect to MySQL database (e.g. ‘RMySQL’)
+- Credentials are available from a text file or likewise (e.g. D:\Project\Database.txt)
+- User: root / password: test / host: localhost / port:3306
+4.	Run SQL Script from file and wait until finished (e.g. D:\Project\Prepare_Data.sql)
+5.	Import all data from database to R (schema: test / table: data)
+6.	Wait 10 min and then shutdown MySQL database (e.g. SQL command: SHUTDOWN;)
+7.	If defined, trim data based on left and right trim level / interval
+- the trim level should be based on the chosen types (quantile, mean ± standard deviation, median ± standard deviation)
+8.	Summarize data and save (mean, standard deviation, min, max, correlation)
+9.	Test for multicollinearity by calculating variance inflation factors (VIF) for each variable
+10.	Run a pooled OLS and save the estimates with ‘plm’ function (-->pooling)
+11.	Run a random regression and save the estimates with ‘plm’ function (-->random)
+12.	Run a fixed effects regression  and save the estimates with ‘plm’ function (-->fixed)
+13.	Run regression with instrumental variables (-->IV)
+14.	Run regression with instrumental variables and fixed effects (--> fixed_IV)
+15.	Display within, between and overall variation
+16.	Perform tests
+- Pooled OLS vs. random effects: Breusch-Pagan Lagrange multiplier: ‘plmtest’
+- Random vs. fixed effects: Hausman test: ‘phtest’
+- Testing for time-fixed effects: ‘pFtest’, ‘plmtest
+- Testing for heteroskedasticity: ‘bptest’ / White’s test
+- Testing for weak instrument: F-test / Wald test
+17.	Display all results from data summary, performed regressions and tests
+18.	Save results to file
+
+As my regressions take a lot of time, the R code should take advantage of multicore CPUs in case of performing the regressions. I couldn’t find anything if this is possible “within” a single regression. Otherwise parallelize the computation of multiple regression with e.g. ‘foreach’ package (--> each regression is computed on a single core, but regressions are computed parallel).
+
+Based on the "external" SQL code the user knows the variable names, so he can define the regression variables to be used n advance.

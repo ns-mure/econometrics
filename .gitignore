@@ -38,8 +38,10 @@ vignettes/*.pdf
 # miscellaneous
 .Ruserdata
 .Rprofile
+.Rbuildignore
 *.zip
 rsconnect/
 packrat/
 packrat/lib*/
 packrat/src/
+.Rproj.user
