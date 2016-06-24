@@ -31,3 +31,15 @@ vignettes/*.pdf
 # Temporary files created by R markdown
 *.utf8.md
 *.knit.md
+
+# system files
+.DS_Store
+
+# miscellaneous
+.Ruserdata
+.Rprofile
+*.zip
+rsconnect/
+packrat/
+packrat/lib*/
+packrat/src/
