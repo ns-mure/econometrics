@@ -55,15 +55,77 @@ econometrics <- function(
 # 3.	Connect to MySQL database (e.g. ‘RMySQL’)
 # - Credentials are available from a text file or likewise (e.g. D:\Project\Database.txt)
 # - User: root / password: test / host: localhost / port:3306
-
-
 # 4.	Run SQL Script from file and wait until finished (e.g. D:\Project\Prepare_Data.sql)
-
-
 # 5.	Import all data from database to R (schema: test / table: data)
-
-
 # 6.	Wait 10 min and then shutdown MySQL database (e.g. SQL command: SHUTDOWN;)
+#' Load SQL Database
+#'
+#' Description
+#'
+#' @param file_path path to SQL database.
+#' @author Michael David Gill
+#' @details
+#' description
+#' @export
+#' @import RMySQL
+#' what packages to open to install, check and load necessary libraries.
+load_sql_database <- function(file_path) {
+
+    # load libraries
+    install.packages("RMySQL")
+    library(RMySQL)
+
+    # set working directory to the SQL file_path
+    old_working_directory <- getwd()[1]
+    setwd(file_path)
+
+    # load configuration file
+    cat("Connecting to the MySQL database ...", "\n")
+    cat("Please enter the name of the MySQL configuration file: ")
+    configuration_file <- readLines(n = 1)
+
+    if (exists(configuration_file)) {
+
+        configuration_df <- read.delim(configuration_file, sep = "=")
+
+        dbname <- configuration_df["database", 1]
+        username <- configuration_df["user", 1]
+        password <- configuration_df["password", 1]
+        host <- configuration_df["host", 1]
+        port <- configuration_df["port", 1]
+
+    } else {
+
+        cat("Please enter the database name: ")
+        dbname <- readLines(n = 1)
+        cat("Please enter the username: ")
+        username <- readLines(n = 1)
+        cat("Please enter the password: ")
+        password <- readLines(n = 1)
+        cat("Please enter the host name: ")
+        host <- readLines(n = 1)
+        cat("Please enter the port number: ")
+        port <- readLines(n = 1)
+
+    }
+
+    # open MySQL connection
+    mysql_db <- dbConnect(
+        MySQL(),
+        dbname = dbname,
+        username = username,
+        password = password,
+        host = host,
+        port = port
+    )
+
+    cat("What is the name of the file that you would like to open?", "\n")
+    sql_file <- readLines(n = 1)
+
+    # reset working directory
+    setwd(old_working_directory)
+
+}
 
 
 # 7.	If defined, trim data based on left and right trim level / interval
