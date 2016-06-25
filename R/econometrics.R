@@ -99,7 +99,7 @@ load_sql_database <- function(file_path) {
     cat("Please enter the name of the MySQL configuration file: ")
     configuration_file <- readLines(n = 1)
 
-    if (exists(configuration_file)) {
+    if (exists("configuration_file")) {
 
         configuration_df <- read.delim(configuration_file, sep = "=")
 
@@ -161,7 +161,7 @@ load_sql_database <- function(file_path) {
 run_sql_script <- function(file_path) {
 
     # load libraries
-    install.packages("RMySQL")
+    # install.packages("RMySQL")
     library(RMySQL)
 
     # set working directory to the SQL file_path
@@ -173,7 +173,7 @@ run_sql_script <- function(file_path) {
     cat("Please enter the name of the MySQL script file: ")
     sql_file_name <- readLines(n = 1)
 
-    if (exists(sql_file_name)) {
+    if (exists("sql_file_name")) {
 
         sql_statement <- read.fwf(sql_file_name, widths = c(1000))
 
@@ -181,7 +181,7 @@ run_sql_script <- function(file_path) {
 
         cat("That script file does not exist.", "\n")
         cat("Please enter your SQL code: ")
-        sql_statement <- readLines(n = 1000)
+        sql_statement <- readLines(n = 1000) # @MICHAEL: DON"T FORGET TO FIX THIS
 
     }
 
