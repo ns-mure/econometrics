@@ -87,7 +87,7 @@ econometrics <- function(
 load_sql_database <- function(file_path) {
 
     # load libraries
-    install.packages("RMySQL")
+    # install.packages("RMySQL")
     library(RMySQL)
 
     # set working directory to the SQL file_path
@@ -103,11 +103,11 @@ load_sql_database <- function(file_path) {
 
         configuration_df <- read.delim(configuration_file, sep = "=")
 
-        dbname <- configuration_df["database", 1]
-        username <- configuration_df["user", 1]
-        password <- configuration_df["password", 1]
-        host <- configuration_df["host", 1]
-        port <- configuration_df["port", 1]
+        dbname <- as.character(configuration_df["database", 1])
+        username <- as.character(configuration_df["user", 1])
+        password <- as.character(configuration_df["password", 1])
+        host <- as.character(configuration_df["host", 1])
+        port <- as.integer(configuration_df["port", 1])
 
     } else {
 
