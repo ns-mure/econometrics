@@ -33,7 +33,7 @@
 #' outlier percentage to be trimmed from a distributions lower end.
 #' @param right_trim
 #' outlier percentage to be trimmed from a distributions upper end.
-#' @param etc et cetera
+#' @param etc et cetera.
 #' @author Michael David Gill
 #' @details
 #' description
@@ -48,7 +48,20 @@ econometrics <- function(
     left_trim,
     right_trim
 ) {
-    # write function calls
+
+    # load sql database
+    mysql_db <- load_sql_database(file_path)
+
+    # run sql script and import resulting table
+    data_frame <- run_sql_script(file_path)
+
+    # shutdown sql database
+    # sleep 600s
+    Sys.sleep(600)
+    # Shut down database
+    dbSendQuery(mysql_db, "SHUTDOWN;")
+
+    # write other function calls
 }
 
 
@@ -63,12 +76,14 @@ econometrics <- function(
 #' Description
 #'
 #' @param file_path path to SQL database.
+#' @return mysql_db a SQL database connection.
 #' @author Michael David Gill
 #' @details
 #' description
 #' @export
 #' @import RMySQL
 #' what packages to open to install, check and load necessary libraries.
+
 load_sql_database <- function(file_path) {
 
     # load libraries
@@ -96,6 +111,7 @@ load_sql_database <- function(file_path) {
 
     } else {
 
+        cat("That configuration file does not exist.", "\n")
         cat("Please enter the database name: ")
         dbname <- readLines(n = 1)
         cat("Please enter the username: ")
@@ -119,8 +135,63 @@ load_sql_database <- function(file_path) {
         port = port
     )
 
-    cat("What is the name of the file that you would like to open?", "\n")
-    sql_file <- readLines(n = 1)
+    # return SQL database
+    return(mysql_db)
+
+    # reset working directory
+    setwd(old_working_directory)
+
+}
+
+
+#' Run SQL Script
+#'
+#' Description
+#'
+#' @param file_path path to SQL database.
+#' @return data_frame
+#' resulting table from SQL statement formatted as an R data frame.
+#' @author Michael David Gill
+#' @details
+#' description
+#' @export
+#' @import RMySQL
+#' what packages to open to install, check and load necessary libraries.
+
+run_sql_script <- function(file_path) {
+
+    # load libraries
+    install.packages("RMySQL")
+    library(RMySQL)
+
+    # set working directory to the SQL file_path
+    old_working_directory <- getwd()[1]
+    setwd(file_path)
+
+    # load SQL script file
+    cat("Loading the MySQL script ...", "\n")
+    cat("Please enter the name of the MySQL script file: ")
+    sql_file_name <- readLines(n = 1)
+
+    if (exists(sql_file_name)) {
+
+        sql_statement <- read.fwf(sql_file_name, widths = c(1000))
+
+    } else {
+
+        cat("That script file does not exist.", "\n")
+        cat("Please enter your SQL code: ")
+        sql_statement <- readLines(n = 1000)
+
+    }
+
+    # run the statements from the SQL script
+    sql_table <- dbSendQuery(mysql_db, sql_statement)
+    # import the SQL table to an R data frame
+    data_frame <- fetch(sql_table, n = -1)
+
+    # return SQL table
+    return(data_frame)
 
     # reset working directory
     setwd(old_working_directory)
