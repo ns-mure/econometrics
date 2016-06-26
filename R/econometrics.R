@@ -22,7 +22,7 @@
 # (file path, predefine which regressions, tests and trimming should be
 # performed, if SQL Script is performed or not, level of trimming, set y, x’s,
 # fixed effects, instrument variables, …)
-#' Main Function
+#' R SQL Econometrics
 #'
 #' Description
 #'
@@ -37,11 +37,10 @@
 #' @author Michael David Gill
 #' @details
 #' description
-#' @export
-#' @import package
-#' what packages to open to install, check and load necessary libraries.
+#' @export r_sql_econometrics
+#' @import RMySQL
 
-econometrics <- function(
+r_sql_econometrics <- function(
     file_path,
     regression_type,
     test_type,
@@ -80,24 +79,15 @@ econometrics <- function(
 #' @author Michael David Gill
 #' @details
 #' description
-#' @export
 #' @import RMySQL
-#' what packages to open to install, check and load necessary libraries.
 
 load_sql_database <- function(file_path) {
 
-    # load libraries
-    # install.packages("RMySQL")
-    library(RMySQL)
-
-    # set working directory to the SQL file_path
-    old_working_directory <- getwd()[1]
-    setwd(file_path)
-
     # load configuration file
     cat("Connecting to the MySQL database ...", "\n")
-    cat("Please enter the name of the MySQL configuration file: ")
-    configuration_file <- readLines(n = 1)
+    cat("Please enter the name of the MySQL configuration file: ", "\n")
+    configuration_file <-
+        paste(file_path, readline(prompt = "SQL > "), sep = "/")
 
     if (exists("configuration_file")) {
 
@@ -112,16 +102,16 @@ load_sql_database <- function(file_path) {
     } else {
 
         cat("That configuration file does not exist.", "\n")
-        cat("Please enter the database name: ")
-        dbname <- readLines(n = 1)
-        cat("Please enter the username: ")
-        username <- readLines(n = 1)
-        cat("Please enter the password: ")
-        password <- readLines(n = 1)
-        cat("Please enter the host name: ")
-        host <- readLines(n = 1)
-        cat("Please enter the port number: ")
-        port <- readLines(n = 1)
+        cat("Please enter the database name: ", "\n")
+        dbname <- readline(prompt = "SQL > ")
+        cat("Please enter the username: ", "\n")
+        username <- readline(prompt = "SQL > ")
+        cat("Please enter the password: ", "\n")
+        password <- readline(prompt = "SQL > ")
+        cat("Please enter the host name: ", "\n")
+        host <- readline(prompt = "SQL > ")
+        cat("Please enter the port number: ", "\n")
+        port <- readline(prompt = "SQL > ")
 
     }
 
@@ -138,9 +128,6 @@ load_sql_database <- function(file_path) {
     # return SQL database
     return(mysql_db)
 
-    # reset working directory
-    setwd(old_working_directory)
-
 }
 
 
@@ -148,53 +135,58 @@ load_sql_database <- function(file_path) {
 #'
 #' Description
 #'
-#' @param file_path path to SQL database.
+#' @param file_path path to SQL script.
+#' @param mysql_db name of database.
 #' @return data_frame
-#' resulting table from SQL statement formatted as an R data frame.
+#' resulting table from SQL script formatted as an R data frame.
 #' @author Michael David Gill
 #' @details
 #' description
-#' @export
 #' @import RMySQL
-#' what packages to open to install, check and load necessary libraries.
+#' @import stringi
 
-run_sql_script <- function(file_path) {
-
-    # load libraries
-    # install.packages("RMySQL")
-    library(RMySQL)
-
-    # set working directory to the SQL file_path
-    old_working_directory <- getwd()[1]
-    setwd(file_path)
+run_sql_script <- function(file_path, mysql_db) {
 
     # load SQL script file
     cat("Loading the MySQL script ...", "\n")
     cat("Please enter the name of the MySQL script file: ")
-    sql_file_name <- readLines(n = 1)
+    sql_file_name <-
+        paste(file_path, readline(prompt = "SQL > "), sep = "/")
 
     if (exists("sql_file_name")) {
 
-        sql_statement <- read.fwf(sql_file_name, widths = c(1000))
+        sql_script <- readLines(sql_file_name)
+        sql_script <- gsub("\t", " ", sql_script)
 
     } else {
 
         cat("That script file does not exist.", "\n")
-        cat("Please enter your SQL code: ")
-        sql_statement <- readLines(n = 1000) # @MICHAEL: DON"T FORGET TO FIX THIS
+        cat("Please enter your SQL statement: ")
+        sql_statement <- readline(prompt = "SQL > ") # @MICHAEL: DON"T FORGET TO FIX THIS
 
     }
 
     # run the statements from the SQL script
-    sql_table <- dbSendQuery(mysql_db, sql_statement)
+    sql_statement <- ""
+    for (i in 1:length(sql_script)) {
+        if (
+            !stri_startswith_fixed(sql_script[i], "/*")
+            &&
+            !is.null(sql_script[i])
+            &&
+            (sql_script[i] != "")
+        ) {
+            sql_statement <- paste(sql_statement, sql_script[i])
+            if (stri_endswith_fixed(sql_statement, ";")) {
+                sql_table <- dbSendQuery(mysql_db, sql_statement)
+            }
+        }
+    }
     # import the SQL table to an R data frame
     data_frame <- fetch(sql_table, n = -1)
 
     # return SQL table
     return(data_frame)
-
-    # reset working directory
-    setwd(old_working_directory)
 
 }
 
