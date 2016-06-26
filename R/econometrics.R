@@ -150,7 +150,7 @@ run_sql_script <- function(file_path, mysql_db) {
 
     # load SQL script file
     cat("Loading the MySQL script ...", "\n")
-    cat("Please enter the name of the MySQL script file: ")
+    cat("Please enter the name of the MySQL script file: ", "\n")
     sql_file_name <-
         paste(file_path, readline(prompt = "SQL > "), sep = "/")
 
@@ -227,14 +227,80 @@ summary <- function(data_frame) {
 
 # 9.	Test for multicollinearity by calculating variance inflation factors (VIF) for each variable
 
+#' Variable Summaries
+#'
+#' Description
+#'
+#' @param data_frame data frame to be summarized.
+#' @return summary
+#' data frame including mean, median, standard deviation, minimum, and maximum
+#' for each variable.
+#' @author Michael David Gill
+#' @details
+#' description
+#' @import car
+
+vif()
+
 
 # 10.	Run a pooled OLS and save the estimates with ‘plm’ function (-->pooling)
-
-
 # 11.	Run a random regression and save the estimates with ‘plm’ function (-->random)
-
-
 # 12.	Run a fixed effects regression  and save the estimates with ‘plm’ function (-->fixed)
+
+#' Multiple Panel Data Estimators
+#'
+#' Description
+#'
+#' @param y outcome variable to be predicted by the model.
+#' @param x  a vector of predictor/covariate variable(s) for the model.
+#' @param data_frame data frame to be modeled.
+#' @return model_summary
+#' @author Michael David Gill
+#' @details
+#' description
+#' @import plm
+#' @references Croissant, Y., & Millo, G. (2008). Panel data econometrics in R:
+#' The plm package. \emph{Journal of Statistical Software, 27}(2), 1–43.
+#' http://doi.org/10.18637/jss.v027.i02
+
+multi_plm <- function(y, x, data_frame) {
+
+    # assemble covariate argument
+    covariate_argument <- x[1]
+    for (i in 2:length(x)) {
+        covariate_argument <- paste(covariate_argument, x[i], sep = " + ")
+    }
+
+    # prompt the user to choose the type(s) of model(s) to be run
+    cat("Please choose the models to be run: ", "\n")
+    cat("1. pooled OLS", "\n")
+    cat("2. fixed effects", "\n")
+    cat("3. random effects", "\n")
+    cat("4. all the above", "\n")
+    model_choice <- readline(prompt = "model number > ")
+    if (
+        !is.integer(model_choice)
+        &&
+        (!((model_choice >= 1) && (model_choice <= 4)))
+    ) {
+        cat("Please enter an integer between 1 and 4.")
+        model_choice <- readline(prompt = "model number > ")
+    }
+    if (model_choice == 1) {
+        pooled_model <- plm(y ~ covariate_argument, model = "pooling")
+    } else if (model_choice == 2) {
+        fixed_model <- plm(y ~ covariate_argument, model = "within")
+    } else if (model_choice == 3) {
+        random_model <- plm(y ~ covariate_argument, model = "random")
+    } else {
+        pooled_model <- plm(y ~ covariate_argument, model = "pooling")
+        fixed_model <- plm(y ~ covariate_argument, model = "within")
+        random_model <- plm(y ~ covariate_argument, model = "random")
+    }
+
+    # return output
+
+}
 
 
 # 13.	Run regression with instrumental variables (-->IV)
