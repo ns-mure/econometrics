@@ -70,6 +70,7 @@ r_sql_econometrics <- function(
 # 4.	Run SQL Script from file and wait until finished (e.g. D:\Project\Prepare_Data.sql)
 # 5.	Import all data from database to R (schema: test / table: data)
 # 6.	Wait 10 min and then shutdown MySQL database (e.g. SQL command: SHUTDOWN;)
+
 #' Load SQL Database
 #'
 #' Description
@@ -196,6 +197,32 @@ run_sql_script <- function(file_path, mysql_db) {
 
 
 # 8.	Summarize data and save (mean, standard deviation, min, max, correlation)
+
+#' Variable Summaries
+#'
+#' Description
+#'
+#' @param data_frame data frame to be summarized.
+#' @return summary
+#' data frame including mean, median, standard deviation, minimum, and maximum
+#' for each variable.
+#' @author Michael David Gill
+#' @details
+#' description
+
+summary <- function(data_frame) {
+
+    means <- colMeans(data_frame)
+    medians <- sapply(data_frame, median)
+    standard_deviations <- sapply(data_frame, sd)
+    minimums <- sapply(data_frame, min)
+    maximums <- sapply(data_frame, max)
+
+    return(
+        t(data.frame(means, medians, standard_deviations, minimums, maximums))
+    )
+
+}
 
 
 # 9.	Test for multicollinearity by calculating variance inflation factors (VIF) for each variable
