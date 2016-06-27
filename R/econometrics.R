@@ -227,20 +227,31 @@ summary <- function(data_frame) {
 
 # 9.	Test for multicollinearity by calculating variance inflation factors (VIF) for each variable
 
-#' Variable Summaries
+#' Variance Inflation Factors for Multiple Models
 #'
 #' Description
 #'
-#' @param data_frame data frame to be summarized.
-#' @return summary
-#' data frame including mean, median, standard deviation, minimum, and maximum
-#' for each variable.
+#' @param all_models a list of panel data estimator models.
+#' @return a list of test results.
 #' @author Michael David Gill
 #' @details
 #' description
+#' @import plm
 #' @import car
+#' @references Croissant, Y., & Millo, G. (2008). Panel data econometrics in R:
+#' The plm package. \emph{Journal of Statistical Software, 27}(2), 1–43.
+#' http://doi.org/10.18637/jss.v027.i02
 
-vif()
+multi_vif <- function(all_models) {
+
+    test_results <- list(NULL, NULL, NULL)
+    for (i in 1:length(all_models)) {
+        test_results[[i]] <- vif(all_models[[i]])
+    }
+
+    return(test_results)
+
+}
 
 
 # 10.	Run a pooled OLS and save the estimates with ‘plm’ function (-->pooling)
