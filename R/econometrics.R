@@ -251,10 +251,10 @@ vif()
 #'
 #' Description
 #'
-#' @param y outcome variable to be predicted by the model.
-#' @param x  a vector of predictor/covariate variable(s) for the model.
+#' @param y column numbers of outcome variable to be predicted.
+#' @param x a vector of column numbers of predictor/covariate variable(s).
 #' @param data_frame data frame to be modeled.
-#' @return model_summary
+#' @return model or list of models
 #' @author Michael David Gill
 #' @details
 #' description
@@ -266,10 +266,12 @@ vif()
 multi_plm <- function(y, x, data_frame) {
 
     # assemble covariate argument
-    covariate_argument <- x[1]
+    covariate_argument <- colnames(data_frame[x[1]])
     for (i in 2:length(x)) {
-        covariate_argument <- paste(covariate_argument, x[i], sep = " + ")
+        covariate_argument <-
+            paste(covariate_argument, colnames(data_frame[x[i]]), sep = " + ")
     }
+    formula <- paste(colnames(data_frame[y]), covariate_argument, sep = " ~ ")
 
     # prompt the user to choose the type(s) of model(s) to be run
     cat("Please choose the models to be run: ", "\n")
@@ -287,18 +289,40 @@ multi_plm <- function(y, x, data_frame) {
         model_choice <- readline(prompt = "model number > ")
     }
     if (model_choice == 1) {
-        pooled_model <- plm(y ~ covariate_argument, model = "pooling")
+        pooled_model <- plm(as.formula(formula), data_frame, model = "pooling")
     } else if (model_choice == 2) {
-        fixed_model <- plm(y ~ covariate_argument, model = "within")
+        fixed_model <- plm(as.formula(formula), data_frame, model = "within")
     } else if (model_choice == 3) {
-        random_model <- plm(y ~ covariate_argument, model = "random")
+        random_model <- plm(as.formula(formula), data_frame, model = "random")
     } else {
-        pooled_model <- plm(y ~ covariate_argument, model = "pooling")
-        fixed_model <- plm(y ~ covariate_argument, model = "within")
-        random_model <- plm(y ~ covariate_argument, model = "random")
+        pooled_model <- plm(as.formula(formula), data_frame, model = "pooling")
+        fixed_model <- plm(as.formula(formula), data_frame, model = "within")
+        random_model <- plm(as.formula(formula), data_frame, model = "random")
     }
 
     # return output
+    if (model_choice == 1) {
+        return(
+            pooled_model
+        )
+    } else if (model_choice == 2) {
+        return(
+            fixed_model
+        )
+    } else if (model_choice == 3) {
+        return(
+            random_model
+        )
+    } else {
+        return(
+            # rbind(
+            #     pooled_model$coefficients,
+            #     c("(Intercept)" = 0, fixed_model$coefficients),
+            #     random_model$coefficients
+            # )
+            list(pooled_model, fixed_model, random_model)
+        )
+    }
 
 }
 
