@@ -338,10 +338,97 @@ multi_plm <- function(y, x, data_frame) {
 
 # 16.	Perform tests
 # - Pooled OLS vs. random effects: Breusch-Pagan Lagrange multiplier: ‘plmtest’
+plmtest(all_models[[1]], type = "bp")
+
 # - Random vs. fixed effects: Hausman test: ‘phtest’
+
+#' Multiple Hausman Tests
+#'
+#' Description
+#'
+#' @param all_models a list of panel data estimator models.
+#' @return a list of test results.
+#' @author Michael David Gill
+#' @details
+#' description
+#' @import plm
+#' @references Croissant, Y., & Millo, G. (2008). Panel data econometrics in R:
+#' The plm package. \emph{Journal of Statistical Software, 27}(2), 1–43.
+#' http://doi.org/10.18637/jss.v027.i02
+
+multi_phtest <- function(all_models) {
+
+    combination <- combn(all_models, 2)
+    test_results <- list(NULL, NULL, NULL)
+    for (i in 1:ncol(combination)) {
+        test_results[[i]] <- phtest(combination[1,i][[1]], combination[2,i][[1]])
+    }
+
+    return(test_results)
+
+}
+
+
 # - Testing for time-fixed effects: ‘pFtest’, ‘plmtest
+plmtest(all_models[[1]], effect = "time", type = "bp")
+
+#' Multiple F Tests for Individual and/or Time Effects
+#'
+#' Description
+#'
+#' @param all_models a list of panel data estimator models.
+#' @return a list of test results.
+#' @author Michael David Gill
+#' @details
+#' description
+#' @import plm
+#' @references Croissant, Y., & Millo, G. (2008). Panel data econometrics in R:
+#' The plm package. \emph{Journal of Statistical Software, 27}(2), 1–43.
+#' http://doi.org/10.18637/jss.v027.i02
+
+multi_pFtest <- function(all_models) {
+
+    combination <- combn(all_models, 2)
+    test_results <- list(NULL, NULL, NULL, NULL, NULL, NULL)
+    for (i in 1:ncol(combination)) {
+        test_results[[i]] <- pFtest(combination[1,i][[1]], combination[2,i][[1]])
+        test_results[[i]] <- pFtest(combination[2,i][[1]], combination[1,i][[1]])
+    }
+
+    return(test_results)
+
+}
+
 # - Testing for heteroskedasticity: ‘bptest’ / White’s test
+
+#' Multiple Breusch-Pagan Tests
+#'
+#' Description
+#'
+#' @param all_models a list of panel data estimator models.
+#' @return a list of test results.
+#' @author Michael David Gill
+#' @details
+#' description
+#' @import plm
+#' @import lmtest
+#' @references Croissant, Y., & Millo, G. (2008). Panel data econometrics in R:
+#' The plm package. \emph{Journal of Statistical Software, 27}(2), 1–43.
+#' http://doi.org/10.18637/jss.v027.i02
+
+multi_bptest <- function(all_models) {
+
+    test_results <- list(NULL, NULL, NULL)
+    for (i in 1:length(all_models)) {
+        test_results[[i]] <- bptest(all_models[[i]])
+    }
+
+    return(test_results)
+
+}
+
 # - Testing for weak instrument: F-test / Wald test
+waldtest(all_models[[1]], test = "F")
 
 
 # 17.	Display all results from data summary, performed regressions and tests
