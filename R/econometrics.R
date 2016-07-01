@@ -49,7 +49,7 @@ r_sql_econometrics <- function(
 ) {
 
     # load sql database
-    mysql_db <- load_sql_database(file_path)
+    mysql_db <- load_sql_database(file_path, configuration_file_name)
 
     # run sql script and import resulting table
     data_frame <- run_sql_script(file_path)
@@ -71,92 +71,80 @@ r_sql_econometrics <- function(
 # 5.	Import all data from database to R (schema: test / table: data)
 # 6.	Wait 10 min and then shutdown MySQL database (e.g. SQL command: SHUTDOWN;)
 
-#' Load SQL Database
+#' Construct Configuration Data Frame
 #'
 #' Description
 #'
 #' @param file_path path to SQL database.
-#' @param configuration_file name of a MySQL configuration file.
-#' @return mysql_db a SQL database connection.
+#' @param configuration_file_name name of a MySQL configuration file.
+#' @return configuration_df a data frame of MySQL configuration parameters.
 #' @author Michael David Gill
 #' @details
 #' description
-#' @import RMySQL
-#' @import
+#' @import stringi
 
-load_sql_database <- function(file_path, configuration_file_name) {
-
-    # load configuration file
-    cat("Connecting to the MySQL database ...", "\n")
-
-    configuration_list[dbname, username, password, host, port] <-
-        function() {
+construct_configuration_df <- function(file_path, configuration_file_name) {
 
         if (missing(configuration_file_name)) {
 
             cat("Would you like to use a MySQL configuration file?", "\n")
 
-                repeat {
+            repeat {
 
-                    use_configuration_file <-
-                        readline(prompt = "Yes (Y) or No (N) ")
+                use_configuration_file <-
+                    readline(prompt = "Yes (Y) or No (N) > ")
 
-                    if (
-                        stri_startswith_fixed(
-                            use_configuration_file,
-                            ignore.case("y")
-                        )
-                    ) {
+                if (
+                    stri_startswith_fixed(
+                        use_configuration_file,
+                        tolower("y")
+                    )
+                ) {
 
-                        cat(
-                            "Please enter the name of the MySQL configuration
-                            file:",
-                            "\n"
-                        )
-                        configuration_file <-
-                            paste(
-                                file_path,
-                                readline(prompt = "SQL > "),
-                                sep = "/"
-                            )
-
-                        configuration_df <-
-                            read.delim(configuration_file, sep = "=")
-
-                        return(
-                            list(
-                                as.character(configuration_df["database", 1]),
-                                as.character(configuration_df["user", 1]),
-                                as.character(configuration_df["password", 1]),
-                                as.character(configuration_df["host", 1]),
-                                as.integer(configuration_df["port", 1])
-                            )
+                    cat(
+                        "Please enter the name of the MySQL configuration file:",
+                        "\n"
+                    )
+                    configuration_file <-
+                        paste(
+                            file_path,
+                            readline(prompt = "SQL > "),
+                            sep = "/"
                         )
 
-                        break
-
-                    } else if (
-                        stri_startswith_fixed(
-                            use_configuration_file,
-                            ignore.case("n")
+                    configuration_df <-
+                        as.data.frame(
+                            t(read.delim(configuration_file, sep = "="))
                         )
-                    ) {
 
-                        cat("That configuration file does not exist.", "\n")
-                        cat("Please enter the database name: ", "\n")
-                        dbname <- readline(prompt = "SQL > ")
-                        cat("Please enter the username: ", "\n")
-                        username <- readline(prompt = "SQL > ")
-                        cat("Please enter the password: ", "\n")
-                        password <- readline(prompt = "SQL > ")
-                        cat("Please enter the host name: ", "\n")
-                        host <- readline(prompt = "SQL > ")
-                        cat("Please enter the port number: ", "\n")
-                        port <- readline(prompt = "SQL > ")
+                    return(configuration_df)
 
-                        return(dbname, username, password, host, port)
+                    break
 
-                        break
+                } else if (
+                    stri_startswith_fixed(
+                        use_configuration_file,
+                        tolower("n")
+                    )
+                ) {
+
+                    cat("Please enter the username: ", "\n")
+                    user <- readline(prompt = "SQL > ")
+                    cat("Please enter the password: ", "\n")
+                    password <- readline(prompt = "SQL > ")
+                    cat("Please enter the database name: ", "\n")
+                    database <- readline(prompt = "SQL > ")
+                    cat("Please enter the host name: ", "\n")
+                    host <- readline(prompt = "SQL > ")
+                    cat("Please enter the port number: ", "\n")
+                    port <- as.integer(readline(prompt = "SQL > "))
+
+                    configuration_df <-
+                        data.frame(user, password, database, host, port)
+
+                    return(configuration_df)
+
+                    break
 
                 }
 
@@ -165,37 +153,54 @@ load_sql_database <- function(file_path, configuration_file_name) {
         } else {
 
             configuration_file <-
-                paste(
-                    file_path,
-                    configuration_file_name,
-                    sep = "/"
-                )
+                paste(file_path, configuration_file_name, sep = "/")
 
             configuration_df <-
-                read.delim(configuration_file, sep = "=")
+                as.data.frame(t(read.delim(configuration_file, sep = "=")))
 
-            return(
-                list(
-                    as.character(configuration_df["database", 1]),
-                    as.character(configuration_df["user", 1]),
-                    as.character(configuration_df["password", 1]),
-                    as.character(configuration_df["host", 1]),
-                    as.integer(configuration_df["port", 1])
-                )
-            )
+            return(configuration_df)
 
         }
 
     }
 
+#' Load SQL Database
+#'
+#' Description
+#'
+#' @param file_path path to SQL database.
+#' @param configuration_file_name name of a MySQL configuration file.
+#' @return mysql_db a SQL database connection.
+#' @author Michael David Gill
+#' @details
+#' description
+#' @import RMySQL
+
+load_sql_database <- function(file_path, configuration_file_name) {
+
+    # load configuration file
+    cat("Connecting to the MySQL database ...", "\n")
+
+    if (missing(configuration_file_name)) {
+
+        configuration_df <- construct_configuration_df(file_path)
+
+    } else {
+
+        configuration_df <-
+            construct_configuration_df(file_path, configuration_file_name)
+
+    }
+
     # open MySQL connection
+
     mysql_db <- dbConnect(
         MySQL(),
-        dbname = configuration_list$dbname,
-        username = configuration_list$username,
-        password = configuration_list$password,
-        host = configuration_list$host,
-        port = configuration_list$port
+        dbname = as.character(configuration_df$database),
+        username = as.character(configuration_df$user),
+        password = as.character(configuration_df$password),
+        host = as.character(configuration_df$host),
+        port = as.integer(configuration_df$port)
     )
 
     # return SQL database
@@ -511,7 +516,7 @@ multi_bptest <- function(all_models) {
 }
 
 # - Testing for weak instrument: F-test / Wald test
-waldtest(all_models[[1]], test = "F")
+# waldtest(all_models[[1]], test = "F")
 
 
 # 17.	Display all results from data summary, performed regressions and tests
