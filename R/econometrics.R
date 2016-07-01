@@ -84,17 +84,17 @@ r_sql_econometrics <- function(
 #' @import RMySQL
 #' @import
 
-load_sql_database <- function(file_path, configuration_file) {
+load_sql_database <- function(file_path, configuration_file_name) {
 
     # load configuration file
     cat("Connecting to the MySQL database ...", "\n")
 
-    if (missing(configuration_file)) {
+    configuration_list[dbname, username, password, host, port] <-
+        function() {
 
-        cat("Would you like to use a MySQL configuration file?", "\n")
+        if (missing(configuration_file_name)) {
 
-        configuration_list[dbname, username, password, host, port] <-
-            function() {
+            cat("Would you like to use a MySQL configuration file?", "\n")
 
                 repeat {
 
@@ -137,7 +137,7 @@ load_sql_database <- function(file_path, configuration_file) {
 
                     } else if (
                         stri_startswith_fixed(
-                            configuration_file,
+                            use_configuration_file,
                             ignore.case("n")
                         )
                     ) {
@@ -162,6 +162,28 @@ load_sql_database <- function(file_path, configuration_file) {
 
             }
 
+        } else {
+
+            configuration_file <-
+                paste(
+                    file_path,
+                    configuration_file_name,
+                    sep = "/"
+                )
+
+            configuration_df <-
+                read.delim(configuration_file, sep = "=")
+
+            return(
+                list(
+                    as.character(configuration_df["database", 1]),
+                    as.character(configuration_df["user", 1]),
+                    as.character(configuration_df["password", 1]),
+                    as.character(configuration_df["host", 1]),
+                    as.integer(configuration_df["port", 1])
+                )
+            )
+
         }
 
     }
@@ -169,11 +191,11 @@ load_sql_database <- function(file_path, configuration_file) {
     # open MySQL connection
     mysql_db <- dbConnect(
         MySQL(),
-        dbname = dbname,
-        username = username,
-        password = password,
-        host = host,
-        port = port
+        dbname = configuration_list$dbname,
+        username = configuration_list$username,
+        password = configuration_list$password,
+        host = configuration_list$host,
+        port = configuration_list$port
     )
 
     # return SQL database
