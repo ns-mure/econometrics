@@ -76,43 +76,93 @@ r_sql_econometrics <- function(
 #' Description
 #'
 #' @param file_path path to SQL database.
+#' @param configuration_file name of a MySQL configuration file.
 #' @return mysql_db a SQL database connection.
 #' @author Michael David Gill
 #' @details
 #' description
 #' @import RMySQL
+#' @import
 
-load_sql_database <- function(file_path) {
+load_sql_database <- function(file_path, configuration_file) {
 
     # load configuration file
     cat("Connecting to the MySQL database ...", "\n")
-    cat("Please enter the name of the MySQL configuration file: ", "\n")
-    configuration_file <-
-        paste(file_path, readline(prompt = "SQL > "), sep = "/")
 
-    if (exists("configuration_file")) {
+    if (missing(configuration_file)) {
 
-        configuration_df <- read.delim(configuration_file, sep = "=")
+        cat("Would you like to use a MySQL configuration file?", "\n")
 
-        dbname <- as.character(configuration_df["database", 1])
-        username <- as.character(configuration_df["user", 1])
-        password <- as.character(configuration_df["password", 1])
-        host <- as.character(configuration_df["host", 1])
-        port <- as.integer(configuration_df["port", 1])
+        configuration_list[dbname, username, password, host, port] <-
+            function() {
 
-    } else {
+                repeat {
 
-        cat("That configuration file does not exist.", "\n")
-        cat("Please enter the database name: ", "\n")
-        dbname <- readline(prompt = "SQL > ")
-        cat("Please enter the username: ", "\n")
-        username <- readline(prompt = "SQL > ")
-        cat("Please enter the password: ", "\n")
-        password <- readline(prompt = "SQL > ")
-        cat("Please enter the host name: ", "\n")
-        host <- readline(prompt = "SQL > ")
-        cat("Please enter the port number: ", "\n")
-        port <- readline(prompt = "SQL > ")
+                    use_configuration_file <-
+                        readline(prompt = "Yes (Y) or No (N) ")
+
+                    if (
+                        stri_startswith_fixed(
+                            use_configuration_file,
+                            ignore.case("y")
+                        )
+                    ) {
+
+                        cat(
+                            "Please enter the name of the MySQL configuration
+                            file:",
+                            "\n"
+                        )
+                        configuration_file <-
+                            paste(
+                                file_path,
+                                readline(prompt = "SQL > "),
+                                sep = "/"
+                            )
+
+                        configuration_df <-
+                            read.delim(configuration_file, sep = "=")
+
+                        return(
+                            list(
+                                as.character(configuration_df["database", 1]),
+                                as.character(configuration_df["user", 1]),
+                                as.character(configuration_df["password", 1]),
+                                as.character(configuration_df["host", 1]),
+                                as.integer(configuration_df["port", 1])
+                            )
+                        )
+
+                        break
+
+                    } else if (
+                        stri_startswith_fixed(
+                            configuration_file,
+                            ignore.case("n")
+                        )
+                    ) {
+
+                        cat("That configuration file does not exist.", "\n")
+                        cat("Please enter the database name: ", "\n")
+                        dbname <- readline(prompt = "SQL > ")
+                        cat("Please enter the username: ", "\n")
+                        username <- readline(prompt = "SQL > ")
+                        cat("Please enter the password: ", "\n")
+                        password <- readline(prompt = "SQL > ")
+                        cat("Please enter the host name: ", "\n")
+                        host <- readline(prompt = "SQL > ")
+                        cat("Please enter the port number: ", "\n")
+                        port <- readline(prompt = "SQL > ")
+
+                        return(dbname, username, password, host, port)
+
+                        break
+
+                }
+
+            }
+
+        }
 
     }
 
