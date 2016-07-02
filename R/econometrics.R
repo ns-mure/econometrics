@@ -301,7 +301,7 @@ trim_variable <- function(x, left_trim, right_trim) {
 
 # 8.	Summarize data and save (mean, standard deviation, min, max, correlation)
 
-#' Variable Summaries
+#' Summarize Data
 #'
 #' Description
 #'
@@ -317,7 +317,7 @@ trim_variable <- function(x, left_trim, right_trim) {
 #' @details
 #' description
 
-summary <- function(data_frame, left_trim, right_trim) {
+summarize_data <- function(data_frame, left_trim, right_trim) {
 
     means <-
         sapply(
@@ -388,23 +388,30 @@ multi_vif <- function(all_models) {
 # 11.	Run a random regression and save the estimates with ‘plm’ function (-->random)
 # 12.	Run a fixed effects regression  and save the estimates with ‘plm’ function (-->fixed)
 
+# 13.	Run regression with instrumental variables (-->IV) ivreg {AER}
+# 14.	Run regression with instrumental variables and fixed effects (--> fixed_IV) felm {lfe}
+
 #' Multiple Panel Data Estimators
 #'
 #' Description
 #'
 #' @param y column numbers of outcome variable to be predicted.
 #' @param x a vector of column numbers of predictor/covariate variable(s).
+#' @param x_fe optional vector of column numbers of fixed effects.
+#' @param x_iv optional vector of column numbers of instrumental variables.
 #' @param data_frame data frame to be modeled.
 #' @return model or list of models
 #' @author Michael David Gill
 #' @details
 #' description
 #' @import plm
+#' @import AER
+#' @import lfe
 #' @references Croissant, Y., & Millo, G. (2008). Panel data econometrics in R:
 #' The plm package. \emph{Journal of Statistical Software, 27}(2), 1–43.
 #' http://doi.org/10.18637/jss.v027.i02
 
-multi_plm <- function(y, x, data_frame) {
+multi_plm <- function(y, x, x_fe, x_iv, data_frame) {
 
     # assemble covariate argument
     covariate_argument <- colnames(data_frame[x[1]])
@@ -414,12 +421,59 @@ multi_plm <- function(y, x, data_frame) {
     }
     formula <- paste(colnames(data_frame[y]), covariate_argument, sep = " ~ ")
 
+    if (exists(x_fe) && exists(x_iv)) {
+        fixed_effects_argument <- colnames(data_frame[x_fe[1]])
+        for (i in 2:length(x_fe)) {
+            fixed_effects_argument <-
+                paste(
+                    fixed_effects_argument,
+                      colnames(data_frame[x_fe[i]]),
+                      sep = " + "
+                )
+        }
+        instrumental_variables_argument <- colnames(data_frame[x_iv[1]])
+        for (i in 2:length(x_iv)) {
+            instrumental_variables_argument <-
+                paste(
+                    instrumental_variables_argument,
+                    colnames(data_frame[x_iv[i]]),
+                    sep = " + "
+                )
+        }
+        formula <-
+            paste(
+                formula,
+                fixed_effects_argument,
+                instrumental_variables_argument,
+                sep = " | "
+            )
+    } else if (exists(x_iv)) {
+        instrumental_variables_argument <- colnames(data_frame[x_iv[1]])
+        for (i in 2:length(x_iv)) {
+            instrumental_variables_argument <-
+                paste(
+                    instrumental_variables_argument,
+                    colnames(data_frame[x_iv[i]]),
+                    sep = " + "
+                )
+        }
+        formula <-
+            paste(
+                formula,
+                instrumental_variables_argument,
+                sep = " | "
+            )
+    }
+
+
     # prompt the user to choose the type(s) of model(s) to be run
     cat("Please choose the models to be run: ", "\n")
     cat("1. pooled OLS", "\n")
     cat("2. fixed effects", "\n")
     cat("3. random effects", "\n")
-    cat("4. all the above", "\n")
+    cat("4. regression with instrumental variables", "\n")
+    cat("5. regression with fixed effects and instrumental variables", "\n")
+    cat("6. all the above", "\n")
     model_choice <- readline(prompt = "model number > ")
     if (
         !is.integer(model_choice)
@@ -435,43 +489,41 @@ multi_plm <- function(y, x, data_frame) {
         fixed_model <- plm(as.formula(formula), data_frame, model = "within")
     } else if (model_choice == 3) {
         random_model <- plm(as.formula(formula), data_frame, model = "random")
+    } else if (model_choice == 4) {
+        iv_model <- ivreg(as.formula(formula), data_frame)
+    } else if (model_choice == 5) {
+        feiv_model <- felm(as.formula(formula), data_frame)
     } else {
         pooled_model <- plm(as.formula(formula), data_frame, model = "pooling")
+        cat("Pooled OLS model completed.")
         fixed_model <- plm(as.formula(formula), data_frame, model = "within")
+        cat("Fixed effects model completed.")
         random_model <- plm(as.formula(formula), data_frame, model = "random")
+        cat("Random effects model completed.")
+        iv_model <- ivreg(as.formula(formula), data_frame)
+        cat("Instrumental variables model completed.")
+        feiv_model <- felm(as.formula(formula), data_frame)
+        cat("Fixed effects model with instrumental variables completed.")
     }
 
     # return output
     if (model_choice == 1) {
-        return(
-            pooled_model
-        )
+        return(pooled_model)
     } else if (model_choice == 2) {
-        return(
-            fixed_model
-        )
+        return(fixed_model)
     } else if (model_choice == 3) {
-        return(
-            random_model
-        )
+        return(random_model)
+    } else if (model_choice == 4) {
+        return(iv_model)
+    } else if (model_choice == 5) {
+        return(feiv_model)
     } else {
         return(
-            # rbind(
-            #     pooled_model$coefficients,
-            #     c("(Intercept)" = 0, fixed_model$coefficients),
-            #     random_model$coefficients
-            # )
-            list(pooled_model, fixed_model, random_model)
+            list(pooled_model, fixed_model, random_model, iv_model, feiv_model)
         )
     }
 
 }
-
-
-# 13.	Run regression with instrumental variables (-->IV)
-
-
-# 14.	Run regression with instrumental variables and fixed effects (--> fixed_IV)
 
 
 # 15.	Display within, between and overall variation
