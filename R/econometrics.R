@@ -272,6 +272,32 @@ run_sql_script <- function(file_path, mysql_db) {
 # 7.	If defined, trim data based on left and right trim level / interval
 # - the trim level should be based on the chosen types (quantile, mean ± standard deviation, median ± standard deviation)
 
+#' Trim Variable
+#'
+#' Description
+#'
+#' @param x a vector to be trimmed.
+#' @param left_trim
+#' percentage of observations to trim from right of the variable's distribution.
+#' @param right_trim
+#' percentage of observations to trim from left of the variable's distribution.
+#' @return vector
+#' @author Michael David Gill
+#' @details
+#' description
+
+trim_variable <- function(x, left_trim, right_trim) {
+
+    return(
+        x[
+            ceiling(length(x) * left_trim)
+            :
+            floor(length(x) - length(x) * right_trim)
+        ]
+    )
+
+}
+
 
 # 8.	Summarize data and save (mean, standard deviation, min, max, correlation)
 
@@ -280,6 +306,10 @@ run_sql_script <- function(file_path, mysql_db) {
 #' Description
 #'
 #' @param data_frame data frame to be summarized.
+#' @param left_trim
+#' percentage of observations to trim from right of the variable's distribution.
+#' @param right_trim
+#' percentage of observations to trim from left of the variable's distribution.
 #' @return summary
 #' data frame including mean, median, standard deviation, minimum, and maximum
 #' for each variable.
@@ -287,16 +317,39 @@ run_sql_script <- function(file_path, mysql_db) {
 #' @details
 #' description
 
-summary <- function(data_frame) {
+summary <- function(data_frame, left_trim, right_trim) {
 
-    means <- colMeans(data_frame)
-    medians <- sapply(data_frame, median)
-    standard_deviations <- sapply(data_frame, sd)
-    minimums <- sapply(data_frame, min)
-    maximums <- sapply(data_frame, max)
+    means <-
+        sapply(
+            data_frame,
+            function(x) {
+                if(is.numeric(x)) mean(trim_variable(x, left_trim, right_trim))
+            }
+        )
+    standard_deviations <-
+        sapply(
+            data_frame,
+            function(x) {
+                if(is.numeric(x)) sd(trim_variable(x, left_trim, right_trim))
+            }
+        )
+    minimums <-
+        sapply(
+            data_frame,
+            function(x) {
+                if(is.numeric(x)) min(trim_variable(x, left_trim, right_trim))
+            }
+        )
+    maximums <-
+        sapply(
+            data_frame,
+            function(x) {
+                if(is.numeric(x)) max(trim_variable(x, left_trim, right_trim))
+            }
+        )
 
     return(
-        t(data.frame(means, medians, standard_deviations, minimums, maximums))
+        data.frame(rbind(means, standard_deviations, minimums, maximums))
     )
 
 }
