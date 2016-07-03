@@ -47,24 +47,65 @@ r_sql_econometrics <- function() {
     # load sql database
     mysql_db <- load_sql_database()
 
+
     # run sql script and import resulting table
     data_frame <- run_sql_script(file_path, mysql_db)
+
 
     # enter parameters
     cat("Please enter the left and right trim levels (from 0 to 0.5):", "\n")
     left_trim <- as.numeric(readline(prompt = "left > "))
     right_trim <- as.numeric(readline(prompt = "right > "))
 
+
     # display descriptive statistics
     descriptive_statistics <- summarize_data(data_frame, left_trim, right_trim)
     descriptive_statistics
 
+
     # define outcome variable, predictor variables, instrumental variables, and
     # fixed effects
 
-    # choose models to run
+    cat(
+        "Please enter the column number containing the outcome variable: ",
+        "\n"
+    )
+    y <- as.integer(readline(prompt = "y > "))
+
+    cat(
+        paste(
+            "Please enter the column numbers containin the covariates, ",
+            "one per line, and then hit enter/return to end: "
+        ),
+        "\n"
+    )
+    x <- scan(stdin())
+
+    cat(
+        paste(
+            "Please enter the column numbers containing the instrumental ",
+            "variables, one per line, and then hit enter/return to end: "
+        ),
+        "\n"
+    )
+    x_iv <- scan(stdin())
+
+    cat(
+        paste(
+            "Please enter the column numbers containing the fixed-effect ",
+            "variables, one per line, and then hit enter/return to end: "
+        ),
+        "\n"
+    )
+    x_fe <- scan(stdin())
+
+
+    # choose model to run
+    model_choice <- choose_model()
+
 
     # choose tests to run
+
 
     # shutdown sql database
     # sleep 600s
@@ -72,9 +113,14 @@ r_sql_econometrics <- function() {
     # Shut down database
     dbSendQuery(mysql_db, "SHUTDOWN;")
 
-    # run models
+
+    # run model
+    model <- multi_plm(y, x, x_fe, x_iv, data_frame, model_choice)
+
 
     # run tests
+
+
 }
 
 
@@ -372,6 +418,41 @@ multi_vif <- function(all_models) {
 # 13.	Run regression with instrumental variables (-->IV) ivreg {AER}
 # 14.	Run regression with instrumental variables and fixed effects (--> fixed_IV) felm {lfe}
 
+#' Choose model
+#'
+#' Description
+#'
+#' @return model_choice
+#' @author Michael David Gill
+#' @details
+#' description
+
+choose_model <- function() {
+
+    # prompt the user to choose the type(s) of model(s) to be run
+
+    cat("Please choose the models to be run: ", "\n")
+    cat("1. pooled OLS", "\n")
+    cat("2. fixed effects", "\n")
+    cat("3. random effects", "\n")
+    cat("4. regression with instrumental variables", "\n")
+    cat("5. regression with fixed effects and instrumental variables", "\n")
+
+    model_choice <- readline(prompt = "model number > ")
+
+    if (
+        !is.integer(model_choice)
+        &&
+        (!((model_choice >= 1) && (model_choice <= 5)))
+    ) {
+        cat("Please enter an integer between 1 and 5.")
+        model_choice <- readline(prompt = "model number > ")
+    }
+
+    return(model_choice)
+
+}
+
 #' Multiple Panel Data Estimators
 #'
 #' Description
@@ -381,7 +462,11 @@ multi_vif <- function(all_models) {
 #' @param x_fe optional vector of column numbers of fixed effects.
 #' @param x_iv optional vector of column numbers of instrumental variables.
 #' @param data data frame to be modeled.
-#' @return model or list of models
+#' @param model_choice
+#' type of model to be run, either (1) pooled OLS, (2) fixed effects, (3) random
+#' effects, (4) regression with instrumental variables, or (5) regression with
+#' fixed effects and instrumental variables.
+#' @return model
 #' @author Michael David Gill
 #' @details
 #' description
@@ -392,7 +477,7 @@ multi_vif <- function(all_models) {
 #' The plm package. \emph{Journal of Statistical Software, 27}(2), 1–43.
 #' http://doi.org/10.18637/jss.v027.i02
 
-multi_plm <- function(y, x, x_fe, x_iv, data) {
+multi_plm <- function(y, x, x_fe, x_iv, data, model_choice) {
 
     # assemble covariate argument
     covariate_argument <- colnames(data_frame[x[1]])
@@ -446,23 +531,7 @@ multi_plm <- function(y, x, x_fe, x_iv, data) {
             )
     }
 
-
-    # prompt the user to choose the type(s) of model(s) to be run
-    cat("Please choose the models to be run: ", "\n")
-    cat("1. pooled OLS", "\n")
-    cat("2. fixed effects", "\n")
-    cat("3. random effects", "\n")
-    cat("4. regression with instrumental variables", "\n")
-    cat("5. regression with fixed effects and instrumental variables", "\n")
-    model_choice <- readline(prompt = "model number > ")
-    if (
-        !is.integer(model_choice)
-        &&
-        (!((model_choice >= 1) && (model_choice <= 5)))
-    ) {
-        cat("Please enter an integer between 1 and 5.")
-        model_choice <- readline(prompt = "model number > ")
-    }
+    # run chosen model
     if (model_choice == 1) {
         pooled_model <- plm(as.formula(formula), data_frame, model = "pooling")
     } else if (model_choice == 2) {
