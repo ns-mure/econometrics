@@ -59,13 +59,22 @@ r_sql_econometrics <- function() {
     descriptive_statistics <- summarize_data(data_frame, left_trim, right_trim)
     descriptive_statistics
 
+    # define outcome variable, predictor variables, instrumental variables, and
+    # fixed effects
+
+    # choose models to run
+
+    # choose tests to run
+
     # shutdown sql database
     # sleep 600s
     Sys.sleep(600)
     # Shut down database
     dbSendQuery(mysql_db, "SHUTDOWN;")
 
-    # write other function calls
+    # run models
+
+    # run tests
 }
 
 
