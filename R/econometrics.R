@@ -40,19 +40,24 @@
 #' @export r_sql_econometrics
 #' @import RMySQL
 
-r_sql_econometrics <- function(
-    file_path,
-    regression_type,
-    test_type,
-    left_trim,
-    right_trim
-) {
+r_sql_econometrics <- function() {
+
+    cat("Welcome to R Econometrics for MySQL Databases.", "\n")
 
     # load sql database
-    mysql_db <- load_sql_database(file_path, configuration_file_name)
+    mysql_db <- load_sql_database()
 
     # run sql script and import resulting table
-    data_frame <- run_sql_script(file_path)
+    data_frame <- run_sql_script(file_path, mysql_db)
+
+    # enter parameters
+    cat("Please enter the left and right trim levels (from 0 to 0.5):", "\n")
+    left_trim <- as.numeric(readline(prompt = "left > "))
+    right_trim <- as.numeric(readline(prompt = "right > "))
+
+    # display descriptive statistics
+    descriptive_statistics <- summarize_data(data_frame, left_trim, right_trim)
+    descriptive_statistics
 
     # shutdown sql database
     # sleep 600s
@@ -75,94 +80,64 @@ r_sql_econometrics <- function(
 #'
 #' Description
 #'
-#' @param file_path path to SQL database.
-#' @param configuration_file_name name of a MySQL configuration file.
 #' @return configuration_df a data frame of MySQL configuration parameters.
 #' @author Michael David Gill
 #' @details
 #' description
 #' @import stringi
 
-construct_configuration_df <- function(file_path, configuration_file_name) {
+construct_configuration_df <- function() {
 
-        if (missing(configuration_file_name)) {
+    cat("Would you like to use a MySQL configuration file?", "\n")
 
-            cat("Would you like to use a MySQL configuration file?", "\n")
+    repeat {
 
-            repeat {
+        use_configuration_file <- readline(prompt = "Yes (Y) or No (N) > ")
 
-                use_configuration_file <-
-                    readline(prompt = "Yes (Y) or No (N) > ")
+        if (stri_startswith_fixed(use_configuration_file, tolower("y"))
+        ) {
 
-                if (
-                    stri_startswith_fixed(
-                        use_configuration_file,
-                        tolower("y")
-                    )
-                ) {
+            cat("Please enter the path to the MySQL configuration file:", "\n")
+            file_path <- readline(prompt = "path > ")
 
-                    cat(
-                        "Please enter the name of the MySQL configuration file:",
-                        "\n"
-                    )
-                    configuration_file <-
-                        paste(
-                            file_path,
-                            readline(prompt = "SQL > "),
-                            sep = "/"
-                        )
-
-                    configuration_df <-
-                        as.data.frame(
-                            t(read.delim(configuration_file, sep = "="))
-                        )
-
-                    return(configuration_df)
-
-                    break
-
-                } else if (
-                    stri_startswith_fixed(
-                        use_configuration_file,
-                        tolower("n")
-                    )
-                ) {
-
-                    cat("Please enter the username: ", "\n")
-                    user <- readline(prompt = "SQL > ")
-                    cat("Please enter the password: ", "\n")
-                    password <- readline(prompt = "SQL > ")
-                    cat("Please enter the database name: ", "\n")
-                    database <- readline(prompt = "SQL > ")
-                    cat("Please enter the host name: ", "\n")
-                    host <- readline(prompt = "SQL > ")
-                    cat("Please enter the port number: ", "\n")
-                    port <- as.integer(readline(prompt = "SQL > "))
-
-                    configuration_df <-
-                        data.frame(user, password, database, host, port)
-
-                    return(configuration_df)
-
-                    break
-
-                }
-
-            }
-
-        } else {
-
+            cat("Please enter the name of the MySQL configuration file:", "\n")
             configuration_file <-
-                paste(file_path, configuration_file_name, sep = "/")
+                paste(file_path, readline(prompt = "file > "), sep = "/")
 
             configuration_df <-
                 as.data.frame(t(read.delim(configuration_file, sep = "=")))
 
             return(configuration_df)
 
+            break
+
+        } else if (
+            stri_startswith_fixed(use_configuration_file, tolower("n"))
+        ) {
+
+            cat("Please enter the username: ", "\n")
+            user <- readline(prompt = "username > ")
+            cat("Please enter the password: ", "\n")
+            password <- readline(prompt = "password > ")
+            cat("Please enter the database name: ", "\n")
+            database <- readline(prompt = "database > ")
+            cat("Please enter the host name: ", "\n")
+            host <- readline(prompt = "host > ")
+            cat("Please enter the port number: ", "\n")
+            port <- as.integer(readline(prompt = "port > "))
+
+            configuration_df <- data.frame(user, password, database, host, port)
+
+            return(configuration_df)
+
+            break
+
         }
 
     }
+
+}
+
 
 #' Load SQL Database
 #'
@@ -176,21 +151,12 @@ construct_configuration_df <- function(file_path, configuration_file_name) {
 #' description
 #' @import RMySQL
 
-load_sql_database <- function(file_path, configuration_file_name) {
+load_sql_database <- function() {
 
     # load configuration file
     cat("Connecting to the MySQL database ...", "\n")
 
-    if (missing(configuration_file_name)) {
-
-        configuration_df <- construct_configuration_df(file_path)
-
-    } else {
-
-        configuration_df <-
-            construct_configuration_df(file_path, configuration_file_name)
-
-    }
+    configuration_df <- construct_configuration_df()
 
     # open MySQL connection
 
@@ -213,7 +179,6 @@ load_sql_database <- function(file_path, configuration_file_name) {
 #'
 #' Description
 #'
-#' @param file_path path to SQL script.
 #' @param mysql_db name of database.
 #' @return data_frame
 #' resulting table from SQL script formatted as an R data frame.
@@ -223,24 +188,31 @@ load_sql_database <- function(file_path, configuration_file_name) {
 #' @import RMySQL
 #' @import stringi
 
-run_sql_script <- function(file_path, mysql_db) {
+run_sql_script <- function(mysql_db) {
 
     # load SQL script file
     cat("Loading the MySQL script ...", "\n")
-    cat("Please enter the name of the MySQL script file: ", "\n")
-    sql_file_name <-
-        paste(file_path, readline(prompt = "SQL > "), sep = "/")
 
-    if (exists("sql_file_name")) {
+    repeat {
 
-        sql_script <- readLines(sql_file_name)
-        sql_script <- gsub("\t", " ", sql_script)
+        cat("Please enter the path to the MySQL script file:", "\n")
+        file_path <- readline(prompt = "path > ")
+        cat("Please enter the name of the MySQL script file: ", "\n")
+        sql_file_name <-
+            paste(file_path, readline(prompt = "SQL > "), sep = "/")
 
-    } else {
+        if (exists("sql_file_name")) {
 
-        cat("That script file does not exist.", "\n")
-        cat("Please enter your SQL statement: ")
-        sql_statement <- readline(prompt = "SQL > ") # @MICHAEL: DON"T FORGET TO FIX THIS
+            sql_script <- readLines(sql_file_name)
+            sql_script <- gsub("\t", " ", sql_script)
+
+            break
+
+        } else {
+
+            cat("That script file does not exist.", "\n")
+
+        }
 
     }
 
@@ -399,7 +371,7 @@ multi_vif <- function(all_models) {
 #' @param x a vector of column numbers of predictor/covariate variable(s).
 #' @param x_fe optional vector of column numbers of fixed effects.
 #' @param x_iv optional vector of column numbers of instrumental variables.
-#' @param data_frame data frame to be modeled.
+#' @param data data frame to be modeled.
 #' @return model or list of models
 #' @author Michael David Gill
 #' @details
@@ -411,7 +383,7 @@ multi_vif <- function(all_models) {
 #' The plm package. \emph{Journal of Statistical Software, 27}(2), 1–43.
 #' http://doi.org/10.18637/jss.v027.i02
 
-multi_plm <- function(y, x, x_fe, x_iv, data_frame) {
+multi_plm <- function(y, x, x_fe, x_iv, data) {
 
     # assemble covariate argument
     covariate_argument <- colnames(data_frame[x[1]])
@@ -421,7 +393,7 @@ multi_plm <- function(y, x, x_fe, x_iv, data_frame) {
     }
     formula <- paste(colnames(data_frame[y]), covariate_argument, sep = " ~ ")
 
-    if (exists(x_fe) && exists(x_iv)) {
+    if (!missing(x_fe) && !missing(x_iv)) {
         fixed_effects_argument <- colnames(data_frame[x_fe[1]])
         for (i in 2:length(x_fe)) {
             fixed_effects_argument <-
@@ -447,7 +419,7 @@ multi_plm <- function(y, x, x_fe, x_iv, data_frame) {
                 instrumental_variables_argument,
                 sep = " | "
             )
-    } else if (exists(x_iv)) {
+    } else if (!missing(x_iv)) {
         instrumental_variables_argument <- colnames(data_frame[x_iv[1]])
         for (i in 2:length(x_iv)) {
             instrumental_variables_argument <-
@@ -473,14 +445,13 @@ multi_plm <- function(y, x, x_fe, x_iv, data_frame) {
     cat("3. random effects", "\n")
     cat("4. regression with instrumental variables", "\n")
     cat("5. regression with fixed effects and instrumental variables", "\n")
-    cat("6. all the above", "\n")
     model_choice <- readline(prompt = "model number > ")
     if (
         !is.integer(model_choice)
         &&
-        (!((model_choice >= 1) && (model_choice <= 4)))
+        (!((model_choice >= 1) && (model_choice <= 5)))
     ) {
-        cat("Please enter an integer between 1 and 4.")
+        cat("Please enter an integer between 1 and 5.")
         model_choice <- readline(prompt = "model number > ")
     }
     if (model_choice == 1) {
@@ -493,17 +464,6 @@ multi_plm <- function(y, x, x_fe, x_iv, data_frame) {
         iv_model <- ivreg(as.formula(formula), data_frame)
     } else if (model_choice == 5) {
         feiv_model <- felm(as.formula(formula), data_frame)
-    } else {
-        pooled_model <- plm(as.formula(formula), data_frame, model = "pooling")
-        cat("Pooled OLS model completed.")
-        fixed_model <- plm(as.formula(formula), data_frame, model = "within")
-        cat("Fixed effects model completed.")
-        random_model <- plm(as.formula(formula), data_frame, model = "random")
-        cat("Random effects model completed.")
-        iv_model <- ivreg(as.formula(formula), data_frame)
-        cat("Instrumental variables model completed.")
-        feiv_model <- felm(as.formula(formula), data_frame)
-        cat("Fixed effects model with instrumental variables completed.")
     }
 
     # return output
@@ -517,10 +477,6 @@ multi_plm <- function(y, x, x_fe, x_iv, data_frame) {
         return(iv_model)
     } else if (model_choice == 5) {
         return(feiv_model)
-    } else {
-        return(
-            list(pooled_model, fixed_model, random_model, iv_model, feiv_model)
-        )
     }
 
 }
