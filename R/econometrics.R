@@ -114,8 +114,8 @@ r_sql_econometrics <- function() {
     dbSendQuery(mysql_db, "SHUTDOWN;")
 
 
-    # run model
-    model <-
+    # run models
+    model_list <-
         multi_plm(
             y = y,
             x = x,
@@ -127,6 +127,7 @@ r_sql_econometrics <- function() {
 
 
     # run tests
+    test_list <- run_tests(model_list)
 
 
 }
@@ -390,35 +391,6 @@ summarize_data <- function(data_frame, left_trim, right_trim) {
 }
 
 
-# 9.	Test for multicollinearity by calculating variance inflation factors (VIF) for each variable
-
-#' Variance Inflation Factors for Multiple Models
-#'
-#' Description
-#'
-#' @param all_models a list of panel data estimator models.
-#' @return a list of test results.
-#' @author Michael David Gill
-#' @details
-#' description
-#' @import plm
-#' @import car
-#' @references Croissant, Y., & Millo, G. (2008). Panel data econometrics in R:
-#' The plm package. \emph{Journal of Statistical Software, 27}(2), 1–43.
-#' http://doi.org/10.18637/jss.v027.i02
-
-multi_vif <- function(all_models) {
-
-    test_results <- list(NULL, NULL, NULL)
-    for (i in 1:length(all_models)) {
-        test_results[[i]] <- vif(all_models[[i]])
-    }
-
-    return(test_results)
-
-}
-
-
 # 10.	Run a pooled OLS and save the estimates with ‘plm’ function (-->pooling)
 # 11.	Run a random regression and save the estimates with ‘plm’ function (-->random)
 # 12.	Run a fixed effects regression  and save the estimates with ‘plm’ function (-->fixed)
@@ -541,90 +513,93 @@ multi_plm <- function(y, x, x_fe, x_iv, data, model_choice) {
     }
 
     # run chosen model
+    model_list <- list()
     if (model_choice == 1) {
         try(
             pooled_model <-
                 plm(as.formula(formula), data_frame, model = "pooling"),
             silent = TRUE
         )
+        if (exists("pooled_model")) {
+            model_list[[length(model_list)+1]] <- pooled_model
+        }
     } else if (model_choice == 2) {
         try(
             fixed_model <-
                 plm(as.formula(formula), data_frame, model = "within"),
             silent = TRUE
         )
+        if (exists("fixed_model")) {
+            model_list[[length(model_list)+1]] <- fixed_model
+        }
     } else if (model_choice == 3) {
         try(
             random_model <-
                 plm(as.formula(formula), data_frame, model = "random"),
             silent = TRUE
         )
+        if (exists("random_model")) {
+            model_list[[length(model_list)+1]] <- random_model
+        }
     } else if (model_choice == 4) {
         try(
             iv_model <- ivreg(as.formula(formula_iv), data_frame),
             silent = TRUE
         )
+        if (exists("iv_model")) {
+            model_list[[length(model_list)+1]] <- iv_model
+        }
     } else if (model_choice == 5) {
         try(
             feiv_model <- felm(as.formula(formula_fe_iv), data_frame),
             silent = TRUE
         )
+        if (exists("feiv_model")) {
+            model_list[[length(model_list)+1]] <- feiv_model
+        }
     } else if (model_choice == 6) {
-        all_models <- list()
         try(
             pooled_model <-
                 plm(as.formula(formula), data_frame, model = "pooling"),
             silent = TRUE
         )
-        if (exists(pooled_model)) {
-            all_models[[length(all_models)+1]] <- pooled_model
+        if (exists("pooled_model")) {
+            model_list[[length(model_list)+1]] <- pooled_model
         }
         try(
             fixed_model <-
                 plm(as.formula(formula), data_frame, model = "within"),
             silent = TRUE
         )
-        if (exists(fixed_model)) {
-            all_models[[length(all_models)+1]] <- fixed_model
+        if (exists("fixed_model")) {
+            model_list[[length(model_list)+1]] <- fixed_model
         }
         try(
             random_model <-
                 plm(as.formula(formula), data_frame, model = "random"),
             silent = TRUE
         )
-        if (exists(random_model)) {
-            all_models[[length(all_models)+1]] <- random_model
+        if (exists("random_model")) {
+            model_list[[length(model_list)+1]] <- random_model
         }
         try(
             iv_model <- ivreg(as.formula(formula_iv), data_frame),
             silent = TRUE
         )
-        if (exists(iv_model)) {
-            all_models[[length(all_models)+1]] <- iv_model
+        if (exists("iv_model")) {
+            model_list[[length(model_list)+1]] <- iv_model
         }
         try(
             feiv_model <- felm(as.formula(formula_fe_iv), data_frame),
             silent = TRUE
         )
-        if (exists(feiv_model)) {
-            all_models[[length(all_models)+1]] <- feiv_model
+        if (exists("feiv_model")) {
+            model_list[[length(model_list)+1]] <- feiv_model
         }
     }
 
     # return output
-    if (model_choice == 1) {
-        return(pooled_model)
-    } else if (model_choice == 2) {
-        return(fixed_model)
-    } else if (model_choice == 3) {
-        return(random_model)
-    } else if (model_choice == 4) {
-        return(iv_model)
-    } else if (model_choice == 5) {
-        return(feiv_model)
-    } else if (model_choice == 6) {
-        return(all_models)
-    }
+    return(model_list)
 
 }
 
@@ -633,98 +608,94 @@ multi_plm <- function(y, x, x_fe, x_iv, data, model_choice) {
 
 
 # 16.	Perform tests
-# - Pooled OLS vs. random effects: Breusch-Pagan Lagrange multiplier: ‘plmtest’
-plmtest(all_models[[1]], type = "bp")
 
-# - Random vs. fixed effects: Hausman test: ‘phtest’
-
-#' Multiple Hausman Tests
+#' Run Tests
 #'
 #' Description
 #'
-#' @param all_models a list of panel data estimator models.
+#' @param model_list a list of panel data estimator models.
 #' @return a list of test results.
 #' @author Michael David Gill
 #' @details
 #' description
-#' @import plm
-#' @references Croissant, Y., & Millo, G. (2008). Panel data econometrics in R:
-#' The plm package. \emph{Journal of Statistical Software, 27}(2), 1–43.
-#' http://doi.org/10.18637/jss.v027.i02
-
-multi_phtest <- function(all_models) {
-
-    combination <- combn(all_models, 2)
-    test_results <- list(NULL, NULL, NULL)
-    for (i in 1:ncol(combination)) {
-        test_results[[i]] <- phtest(combination[1,i][[1]], combination[2,i][[1]])
-    }
-
-    return(test_results)
-
-}
-
-
-# - Testing for time-fixed effects: ‘pFtest’, ‘plmtest
-plmtest(all_models[[1]], effect = "time", type = "bp")
-
-#' Multiple F Tests for Individual and/or Time Effects
-#'
-#' Description
-#'
-#' @param all_models a list of panel data estimator models.
-#' @return a list of test results.
-#' @author Michael David Gill
-#' @details
-#' description
-#' @import plm
-#' @references Croissant, Y., & Millo, G. (2008). Panel data econometrics in R:
-#' The plm package. \emph{Journal of Statistical Software, 27}(2), 1–43.
-#' http://doi.org/10.18637/jss.v027.i02
-
-multi_pFtest <- function(all_models) {
-
-    combination <- combn(all_models, 2)
-    test_results <- list(NULL, NULL, NULL, NULL, NULL, NULL)
-    for (i in 1:ncol(combination)) {
-        test_results[[i]] <- pFtest(combination[1,i][[1]], combination[2,i][[1]])
-        test_results[[i]] <- pFtest(combination[2,i][[1]], combination[1,i][[1]])
-    }
-
-    return(test_results)
-
-}
-
-# - Testing for heteroskedasticity: ‘bptest’ / White’s test
-
-#' Multiple Breusch-Pagan Tests
-#'
-#' Description
-#'
-#' @param all_models a list of panel data estimator models.
-#' @return a list of test results.
-#' @author Michael David Gill
-#' @details
-#' description
+#' @import car
 #' @import plm
 #' @import lmtest
-#' @references Croissant, Y., & Millo, G. (2008). Panel data econometrics in R:
-#' The plm package. \emph{Journal of Statistical Software, 27}(2), 1–43.
-#' http://doi.org/10.18637/jss.v027.i02
 
-multi_bptest <- function(all_models) {
+run_tests <- function(model_list) {
 
-    test_results <- list(NULL, NULL, NULL)
-    for (i in 1:length(all_models)) {
-        test_results[[i]] <- bptest(all_models[[i]])
+    test_list <- list()
+
+    # 9.	Test for multicollinearity by calculating variance inflation factors (VIF) for each variable
+    for (i in 1:length(model_list)) {
+        try(
+            test_list[[length(test_list)+1]] <- vif(model_list[[i]]),
+            silent = TRUE
+        )
     }
 
-    return(test_results)
+    # - Pooled OLS vs. random effects: Breusch-Pagan Lagrange multiplier: ‘plmtest’
+    for (i in 1:length(model_list)) {
+        try(
+            test_list[[length(test_list)+1]] <-
+                plmtest(model_list[[i]], type = "bp"),
+            silent = TRUE
+        )
+    }
+
+    # - Testing for time-fixed effects: ‘plmtest
+    for (i in 1:length(model_list)) {
+        try(
+            test_list[[length(test_list)+1]] <-
+                plmtest(model_list[[i]], effect = "time", type = "bp"),
+            silent = TRUE
+        )
+    }
+
+    # - Testing for heteroskedasticity: ‘bptest’ / White’s test
+
+    #' Multiple Breusch-Pagan Tests
+    for (i in 1:length(model_list)) {
+        try(
+            test_list[[length(test_list)+1]] <- bptest(model_list[[i]]),
+            silent = TRUE
+        )
+    }
+
+    # - Random vs. fixed effects: Hausman test: ‘phtest’
+    for (i in 1:length(model_list)) {
+        for (j in (i + 1):length(model_list)) {
+            try(
+                test_list[[length(test_list)+1]] <-
+                    phtest(model_list[[i]], model_list[[j]]),
+                silent = TRUE
+            )
+        }
+    }
+
+    # - Testing for time-fixed effects: ‘pFtest’
+    for (i in 1:length(model_list)) {
+        for (j in (i + 1):length(model_list)) {
+            try(
+                test_list[[length(test_list)+1]] <-
+                    pFtest(model_list[[i]], model_list[[j]]),
+                silent = TRUE
+            )
+        }
+    }
+
+    # - Testing for weak instrument: F-test / Wald test
+    for (i in 1:length(model_list)) {
+        try(
+            test_list[[length(test_list)+1]] <-
+                waldtest(model_list[[1]], test = "F"),
+            silent = TRUE
+        )
+    }
+
+    return(test_list)
 
 }
-
-# - Testing for weak instrument: F-test / Wald test
-# waldtest(all_models[[1]], test = "F")
 
 
 # 17.	Display all results from data summary, performed regressions and tests
