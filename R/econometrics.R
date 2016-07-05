@@ -115,7 +115,15 @@ r_sql_econometrics <- function() {
 
 
     # run model
-    model <- multi_plm(y, x, x_fe, x_iv, data_frame, model_choice)
+    model <-
+        multi_plm(
+            y = y,
+            x = x,
+            x_fe = x_fe,
+            x_iv = x_iv,
+            data = data_frame,
+            model_choice =  model_choice
+        )
 
 
     # run tests
@@ -437,15 +445,16 @@ choose_model <- function() {
     cat("3. random effects", "\n")
     cat("4. regression with instrumental variables", "\n")
     cat("5. regression with fixed effects and instrumental variables", "\n")
+    cat("6. all models", "\n")
 
     model_choice <- readline(prompt = "model number > ")
 
     if (
         !is.integer(model_choice)
         &&
-        (!((model_choice >= 1) && (model_choice <= 5)))
+        (!((model_choice >= 1) && (model_choice <= 6)))
     ) {
-        cat("Please enter an integer between 1 and 5.")
+        cat("Please enter an integer between 1 and 6.")
         model_choice <- readline(prompt = "model number > ")
     }
 
@@ -506,7 +515,7 @@ multi_plm <- function(y, x, x_fe, x_iv, data, model_choice) {
                     sep = " + "
                 )
         }
-        formula <-
+        formula_fe_iv <-
             paste(
                 formula,
                 fixed_effects_argument,
@@ -523,7 +532,7 @@ multi_plm <- function(y, x, x_fe, x_iv, data, model_choice) {
                     sep = " + "
                 )
         }
-        formula <-
+        formula_iv <-
             paste(
                 formula,
                 instrumental_variables_argument,
@@ -533,15 +542,73 @@ multi_plm <- function(y, x, x_fe, x_iv, data, model_choice) {
 
     # run chosen model
     if (model_choice == 1) {
-        pooled_model <- plm(as.formula(formula), data_frame, model = "pooling")
+        try(
+            pooled_model <-
+                plm(as.formula(formula), data_frame, model = "pooling"),
+            silent = TRUE
+        )
     } else if (model_choice == 2) {
-        fixed_model <- plm(as.formula(formula), data_frame, model = "within")
+        try(
+            fixed_model <-
+                plm(as.formula(formula), data_frame, model = "within"),
+            silent = TRUE
+        )
     } else if (model_choice == 3) {
-        random_model <- plm(as.formula(formula), data_frame, model = "random")
+        try(
+            random_model <-
+                plm(as.formula(formula), data_frame, model = "random"),
+            silent = TRUE
+        )
     } else if (model_choice == 4) {
-        iv_model <- ivreg(as.formula(formula), data_frame)
+        try(
+            iv_model <- ivreg(as.formula(formula_iv), data_frame),
+            silent = TRUE
+        )
     } else if (model_choice == 5) {
-        feiv_model <- felm(as.formula(formula), data_frame)
+        try(
+            feiv_model <- felm(as.formula(formula_fe_iv), data_frame),
+            silent = TRUE
+        )
+    } else if (model_choice == 6) {
+        all_models <- list()
+        try(
+            pooled_model <-
+                plm(as.formula(formula), data_frame, model = "pooling"),
+            silent = TRUE
+        )
+        if (exists(pooled_model)) {
+            all_models[[length(all_models)+1]] <- pooled_model
+        }
+        try(
+            fixed_model <-
+                plm(as.formula(formula), data_frame, model = "within"),
+            silent = TRUE
+        )
+        if (exists(fixed_model)) {
+            all_models[[length(all_models)+1]] <- fixed_model
+        }
+        try(
+            random_model <-
+                plm(as.formula(formula), data_frame, model = "random"),
+            silent = TRUE
+        )
+        if (exists(random_model)) {
+            all_models[[length(all_models)+1]] <- random_model
+        }
+        try(
+            iv_model <- ivreg(as.formula(formula_iv), data_frame),
+            silent = TRUE
+        )
+        if (exists(iv_model)) {
+            all_models[[length(all_models)+1]] <- iv_model
+        }
+        try(
+            feiv_model <- felm(as.formula(formula_fe_iv), data_frame),
+            silent = TRUE
+        )
+        if (exists(feiv_model)) {
+            all_models[[length(all_models)+1]] <- feiv_model
+        }
     }
 
     # return output
@@ -555,6 +622,8 @@ multi_plm <- function(y, x, x_fe, x_iv, data, model_choice) {
         return(iv_model)
     } else if (model_choice == 5) {
         return(feiv_model)
+    } else if (model_choice == 6) {
+        return(all_models)
     }
 
 }
