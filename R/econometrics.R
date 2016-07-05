@@ -1,44 +1,24 @@
-################################################################################
-# Package: econometrics                                                        #
-# Type: Package                                                                #
-# Title: Regressions / Econometric analyses in R with data from MySQL database #
-# Author: Michael David Gill                                                   #
-# Maintainer: Michael David Gill <michaelgill1969@gmail.com>                   #
-# URL: https://github.com/michaelgill1969/econometrics                         #
-# Description: This package, developed for the Upwork Contract ID 16581251,    #
-# provides functions for importing data from SQL database and econometric      #
-# analyses on that data.  The regressions cover random effects, fixed effects, #
-# and instrument variable models. The script is written in R and the code is   #
-# structured with explanatory comments on average every 2 code lines (in       #
-# English). The script is flexible so the user can chose file paths, set the   #
-# parameters for the regression like Y and X’s, chose the type of model        #
-# (single or multiple), chose tests (single or multiple). After the setup, the #
-# code runs automatically without user interaction, displays and saves the     #
-# results.                                                                     #
-# License: The MIT License (MIT)                                               #
-################################################################################
-
-# 1.	Set all parameters at the start of the script for the further steps
-# (file path, predefine which regressions, tests and trimming should be
-# performed, if SQL Script is performed or not, level of trimming, set y, x’s,
-# fixed effects, instrument variables, …)
 #' R SQL Econometrics
 #'
-#' Description
+#' Runs various pooled linear models and tests for econometric analysis using
+#' data imported from a MySQL server.
 #'
-#' @param file_path path to SQL database.
-#' @param regression_type type of regression(s?) to be used.
-#' @param test_type type of test(s?) to be performed.
-#' @param left_trim
-#' outlier percentage to be trimmed from a distributions lower end.
-#' @param right_trim
-#' outlier percentage to be trimmed from a distributions upper end.
-#' @param etc et cetera.
 #' @author Michael David Gill
 #' @details
-#' description
-#' @export r_sql_econometrics
-#' @import RMySQL
+#' Sets all parameters at the start of the script for the further steps (file
+#' path, predefine which regressions, tests and trimming should be performed, if
+#' SQL Script is performed or not, level of trimming, set y, x’s, fixed effects,
+#' instrument variables, …)
+#'
+#' Connects to MySQL database (e.g. ‘RMySQL’)
+#' - Credentials are available from a text file or likewise
+#' - User: root / password: test / host: localhost / port:3306
+#'
+#' Runs SQL Script from file and wait until finished
+#'
+#' Imports all data from database to R (schema: test / table: data)
+#'
+#' Waits 10 min and then shutdown MySQL database (e.g. SQL command: SHUTDOWN;)
 
 r_sql_econometrics <- function() {
 
@@ -49,7 +29,7 @@ r_sql_econometrics <- function() {
 
 
     # run sql script and import resulting table
-    data_frame <- run_sql_script(file_path, mysql_db)
+    data_frame <- run_sql_script(mysql_db)
 
 
     # enter parameters
@@ -104,9 +84,6 @@ r_sql_econometrics <- function() {
     model_choice <- choose_model()
 
 
-    # choose tests to run
-
-
     # shutdown sql database
     # sleep 600s
     Sys.sleep(600)
@@ -116,7 +93,7 @@ r_sql_econometrics <- function() {
 
     # run models
     model_list <-
-        multi_plm(
+        run_models(
             y = y,
             x = x,
             x_fe = x_fe,
@@ -126,28 +103,41 @@ r_sql_econometrics <- function() {
         )
 
 
+
+
+    # 15.	Display within, between and overall variation
+
+    # 16.	Perform tests
     # run tests
     test_list <- run_tests(model_list)
+
+
+    # 17.	Display all results from data summary, performed regressions and tests
+
+    # 18.	Save results to file
+
+    # As my regressions take a lot of time, the R code should take advantage of
+    # multicore CPUs in case of performing the regressions. I couldn’t find anything
+    # if this is possible “within” a single regression. Otherwise parallelize the
+    # computation of multiple regression with e.g. ‘foreach’ package (--> each
+    # regression is computed on a single core, but regressions are computed
+    # parallel).
+    #
+    # Based on the "external" SQL code the user knows the variable names, so he can
+    # define the regression variables to be used n advance.
 
 
 }
 
 
-# 3.	Connect to MySQL database (e.g. ‘RMySQL’)
-# - Credentials are available from a text file or likewise (e.g. D:\Project\Database.txt)
-# - User: root / password: test / host: localhost / port:3306
-# 4.	Run SQL Script from file and wait until finished (e.g. D:\Project\Prepare_Data.sql)
-# 5.	Import all data from database to R (schema: test / table: data)
-# 6.	Wait 10 min and then shutdown MySQL database (e.g. SQL command: SHUTDOWN;)
-
 #' Construct Configuration Data Frame
 #'
-#' Description
+#' A helper function that constructs a data frame of configuration data for a
+#' MySQL server from a file or user input for use by the load_sql_database
+#' function.
 #'
 #' @return configuration_df a data frame of MySQL configuration parameters.
 #' @author Michael David Gill
-#' @details
-#' description
 #' @import stringi
 
 construct_configuration_df <- function() {
@@ -205,14 +195,10 @@ construct_configuration_df <- function() {
 
 #' Load SQL Database
 #'
-#' Description
+#' Loads a MySQL database.
 #'
-#' @param file_path path to SQL database.
-#' @param configuration_file_name name of a MySQL configuration file.
 #' @return mysql_db a SQL database connection.
 #' @author Michael David Gill
-#' @details
-#' description
 #' @import RMySQL
 
 load_sql_database <- function() {
@@ -241,14 +227,12 @@ load_sql_database <- function() {
 
 #' Run SQL Script
 #'
-#' Description
+#' Runs a SQL query imported from an SQL query file.
 #'
 #' @param mysql_db name of database.
 #' @return data_frame
 #' resulting table from SQL script formatted as an R data frame.
 #' @author Michael David Gill
-#' @details
-#' description
 #' @import RMySQL
 #' @import stringi
 
@@ -305,12 +289,10 @@ run_sql_script <- function(mysql_db) {
 }
 
 
-# 7.	If defined, trim data based on left and right trim level / interval
-# - the trim level should be based on the chosen types (quantile, mean ± standard deviation, median ± standard deviation)
-
 #' Trim Variable
 #'
-#' Description
+#' If defined, trims data based on left and right trim level / interval for use
+#' by the summarize_data function.
 #'
 #' @param x a vector to be trimmed.
 #' @param left_trim
@@ -319,8 +301,6 @@ run_sql_script <- function(mysql_db) {
 #' percentage of observations to trim from left of the variable's distribution.
 #' @return vector
 #' @author Michael David Gill
-#' @details
-#' description
 
 trim_variable <- function(x, left_trim, right_trim) {
 
@@ -335,11 +315,10 @@ trim_variable <- function(x, left_trim, right_trim) {
 }
 
 
-# 8.	Summarize data and save (mean, standard deviation, min, max, correlation)
-
 #' Summarize Data
 #'
-#' Description
+#' Calculates summary of descriptive statisitics (mean, standard deviation, min,
+#' max, correlation).
 #'
 #' @param data_frame data frame to be summarized.
 #' @param left_trim
@@ -350,8 +329,6 @@ trim_variable <- function(x, left_trim, right_trim) {
 #' data frame including mean, median, standard deviation, minimum, and maximum
 #' for each variable.
 #' @author Michael David Gill
-#' @details
-#' description
 
 summarize_data <- function(data_frame, left_trim, right_trim) {
 
@@ -391,21 +368,13 @@ summarize_data <- function(data_frame, left_trim, right_trim) {
 }
 
 
-# 10.	Run a pooled OLS and save the estimates with ‘plm’ function (-->pooling)
-# 11.	Run a random regression and save the estimates with ‘plm’ function (-->random)
-# 12.	Run a fixed effects regression  and save the estimates with ‘plm’ function (-->fixed)
-
-# 13.	Run regression with instrumental variables (-->IV) ivreg {AER}
-# 14.	Run regression with instrumental variables and fixed effects (--> fixed_IV) felm {lfe}
-
 #' Choose model
 #'
-#' Description
+#' Allows the user to choose one or all of several econometric models to be
+#' calculated by run_models.
 #'
 #' @return model_choice
 #' @author Michael David Gill
-#' @details
-#' description
 
 choose_model <- function() {
 
@@ -434,9 +403,10 @@ choose_model <- function() {
 
 }
 
-#' Multiple Panel Data Estimators
+
+#' Run Models
 #'
-#' Description
+#' Calculates one or several econometric models.
 #'
 #' @param y column numbers of outcome variable to be predicted.
 #' @param x a vector of column numbers of predictor/covariate variable(s).
@@ -451,6 +421,11 @@ choose_model <- function() {
 #' @author Michael David Gill
 #' @details
 #' description
+#' Runs a pooled OLS and save the estimates with ‘plm’ function (-->pooling), a
+#' random regression and save the estimates with ‘plm’ function (-->random), a
+#' fixed effects regression  and save the estimates with ‘plm’ function
+#' (-->fixed), a regression with instrumental variables (-->IV) ivreg {AER}, and
+#' a regression with instrumental variables and fixed effects (--> fixed_IV)
 #' @import plm
 #' @import AER
 #' @import lfe
@@ -458,7 +433,7 @@ choose_model <- function() {
 #' The plm package. \emph{Journal of Statistical Software, 27}(2), 1–43.
 #' http://doi.org/10.18637/jss.v027.i02
 
-multi_plm <- function(y, x, x_fe, x_iv, data, model_choice) {
+run_models <- function(y, x, x_fe, x_iv, data, model_choice) {
 
     # assemble covariate argument
     covariate_argument <- colnames(data_frame[x[1]])
@@ -604,20 +579,19 @@ multi_plm <- function(y, x, x_fe, x_iv, data, model_choice) {
 }
 
 
-# 15.	Display within, between and overall variation
-
-
-# 16.	Perform tests
-
 #' Run Tests
 #'
-#' Description
+#' Runs several test on models generated by run_models.
 #'
 #' @param model_list a list of panel data estimator models.
 #' @return a list of test results.
 #' @author Michael David Gill
 #' @details
-#' description
+#' Tests for multicollinearity by calculating variance inflation factors (VIF)
+#' for each variable, pooled OLS vs. random effects with Breusch-Pagan Lagrange
+#' multiplier (plmtest), time-fixed effects: (plmtest), heteroskedasticity
+#' (bptest / White’s test), Random vs. fixed effects: Hausman test (phtest),
+#' time-fixed effects (pFtest), weak instrument (F-test / Wald test).
 #' @import car
 #' @import plm
 #' @import lmtest
@@ -654,7 +628,7 @@ run_tests <- function(model_list) {
 
     # - Testing for heteroskedasticity: ‘bptest’ / White’s test
 
-    #' Multiple Breusch-Pagan Tests
+    # Multiple Breusch-Pagan Tests
     for (i in 1:length(model_list)) {
         try(
             test_list[[length(test_list)+1]] <- bptest(model_list[[i]]),
@@ -688,7 +662,7 @@ run_tests <- function(model_list) {
     for (i in 1:length(model_list)) {
         try(
             test_list[[length(test_list)+1]] <-
-                waldtest(model_list[[1]], test = "F"),
+                waldtest(model_list[[i]], test = "F"),
             silent = TRUE
         )
     }
@@ -697,20 +671,3 @@ run_tests <- function(model_list) {
 
 }
 
-
-# 17.	Display all results from data summary, performed regressions and tests
-
-
-# 18.	Save results to file
-
-
-# Try to implement a multicore approach.
-# As my regressions take a lot of time, the R code should take advantage of
-# multicore CPUs in case of performing the regressions. I couldn’t find anything
-# if this is possible “within” a single regression. Otherwise parallelize the
-# computation of multiple regression with e.g. ‘foreach’ package (--> each
-# regression is computed on a single core, but regressions are computed
-# parallel).
-#
-# Based on the "external" SQL code the user knows the variable names, so he can
-# define the regression variables to be used n advance.

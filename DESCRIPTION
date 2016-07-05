@@ -1,9 +1,28 @@
 Package: econometrics
 Type: Package
-Title: What the package does (short line)
+Title: Econometric analyses in R with data from MySQL database
 Version: 1.0
 Date: 2016-06-23
-Author: Who wrote it
-Maintainer: Who to complain to <yourfault@somewhere.net>
-Description: More about what it does (maybe more than one line)
-License: What license is it under?
+Author: Michael David Gill
+Maintainer: Michael David Gill <michaelgill1969@gmail.com>
+URL: https://github.com/michaelgill1969/econometrics
+Description: This package, developed for the Upwork Contract ID 16581251,
+    provides functions for importing data from SQL database and econometric
+    analyses on that data. The regressions cover random effects, fixed effects,
+    and instrument variable models. The script is written in R and the code is
+    structured with explanatory comments on average every 2 code lines (in English).
+    The script is flexible so the user can chose file paths, set the parameters for
+    the regression like Y and Xs, choose the type of model (single or multiple),
+    choose tests (single or multiple). After the setup, the code runs automatically
+    without user interaction, displays and saves the results.
+License: MIT + file LICENSE
+LazyData: TRUE
+Imports:
+    RMySQL,
+    stringi,
+    plm,
+    AER,
+    lfe,
+    car,
+    lmtest
+RoxygenNote: 5.0.1
