@@ -1,3 +1,11 @@
+# library(AER)
+# library(RMySQL)
+# library(car)
+# library(lfe)
+# library(lmtest)
+# library(plm)
+# library(stringi)
+
 #' R SQL Econometrics
 #'
 #' Runs various pooled linear models and tests for econometric analysis using
@@ -436,29 +444,29 @@ choose_model <- function() {
 run_models <- function(y, x, x_fe, x_iv, data, model_choice) {
 
     # assemble covariate argument
-    covariate_argument <- colnames(data_frame[x[1]])
+    covariate_argument <- colnames(data[x[1]])
     for (i in 2:length(x)) {
         covariate_argument <-
-            paste(covariate_argument, colnames(data_frame[x[i]]), sep = " + ")
+            paste(covariate_argument, colnames(data[x[i]]), sep = " + ")
     }
-    formula <- paste(colnames(data_frame[y]), covariate_argument, sep = " ~ ")
+    formula <- paste(colnames(data[y]), covariate_argument, sep = " ~ ")
 
     if (!missing(x_fe) && !missing(x_iv)) {
-        fixed_effects_argument <- colnames(data_frame[x_fe[1]])
+        fixed_effects_argument <- colnames(data[x_fe[1]])
         for (i in 2:length(x_fe)) {
             fixed_effects_argument <-
                 paste(
                     fixed_effects_argument,
-                      colnames(data_frame[x_fe[i]]),
+                      colnames(data[x_fe[i]]),
                       sep = " + "
                 )
         }
-        instrumental_variables_argument <- colnames(data_frame[x_iv[1]])
+        instrumental_variables_argument <- colnames(data[x_iv[1]])
         for (i in 2:length(x_iv)) {
             instrumental_variables_argument <-
                 paste(
                     instrumental_variables_argument,
-                    colnames(data_frame[x_iv[i]]),
+                    colnames(data[x_iv[i]]),
                     sep = " + "
                 )
         }
@@ -470,12 +478,12 @@ run_models <- function(y, x, x_fe, x_iv, data, model_choice) {
                 sep = " | "
             )
     } else if (!missing(x_iv)) {
-        instrumental_variables_argument <- colnames(data_frame[x_iv[1]])
+        instrumental_variables_argument <- colnames(data[x_iv[1]])
         for (i in 2:length(x_iv)) {
             instrumental_variables_argument <-
                 paste(
                     instrumental_variables_argument,
-                    colnames(data_frame[x_iv[i]]),
+                    colnames(data[x_iv[i]]),
                     sep = " + "
                 )
         }
@@ -492,7 +500,7 @@ run_models <- function(y, x, x_fe, x_iv, data, model_choice) {
     if (model_choice == 1) {
         try(
             pooled_model <-
-                plm(as.formula(formula), data_frame, model = "pooling"),
+                plm(as.formula(formula), data, model = "pooling"),
             silent = TRUE
         )
         if (exists("pooled_model")) {
@@ -501,7 +509,7 @@ run_models <- function(y, x, x_fe, x_iv, data, model_choice) {
     } else if (model_choice == 2) {
         try(
             fixed_model <-
-                plm(as.formula(formula), data_frame, model = "within"),
+                plm(as.formula(formula), data, model = "within"),
             silent = TRUE
         )
         if (exists("fixed_model")) {
@@ -510,7 +518,7 @@ run_models <- function(y, x, x_fe, x_iv, data, model_choice) {
     } else if (model_choice == 3) {
         try(
             random_model <-
-                plm(as.formula(formula), data_frame, model = "random"),
+                plm(as.formula(formula), data, model = "random"),
             silent = TRUE
         )
         if (exists("random_model")) {
@@ -518,7 +526,7 @@ run_models <- function(y, x, x_fe, x_iv, data, model_choice) {
         }
     } else if (model_choice == 4) {
         try(
-            iv_model <- ivreg(as.formula(formula_iv), data_frame),
+            iv_model <- ivreg(as.formula(formula_iv), data),
             silent = TRUE
         )
         if (exists("iv_model")) {
@@ -526,7 +534,7 @@ run_models <- function(y, x, x_fe, x_iv, data, model_choice) {
         }
     } else if (model_choice == 5) {
         try(
-            feiv_model <- felm(as.formula(formula_fe_iv), data_frame),
+            feiv_model <- felm(as.formula(formula_fe_iv), data),
             silent = TRUE
         )
         if (exists("feiv_model")) {
@@ -535,7 +543,7 @@ run_models <- function(y, x, x_fe, x_iv, data, model_choice) {
     } else if (model_choice == 6) {
         try(
             pooled_model <-
-                plm(as.formula(formula), data_frame, model = "pooling"),
+                plm(as.formula(formula), data, model = "pooling"),
             silent = TRUE
         )
         if (exists("pooled_model")) {
@@ -543,7 +551,7 @@ run_models <- function(y, x, x_fe, x_iv, data, model_choice) {
         }
         try(
             fixed_model <-
-                plm(as.formula(formula), data_frame, model = "within"),
+                plm(as.formula(formula), data, model = "within"),
             silent = TRUE
         )
         if (exists("fixed_model")) {
@@ -551,21 +559,21 @@ run_models <- function(y, x, x_fe, x_iv, data, model_choice) {
         }
         try(
             random_model <-
-                plm(as.formula(formula), data_frame, model = "random"),
+                plm(as.formula(formula), data, model = "random"),
             silent = TRUE
         )
         if (exists("random_model")) {
             model_list[[length(model_list)+1]] <- random_model
         }
         try(
-            iv_model <- ivreg(as.formula(formula_iv), data_frame),
+            iv_model <- ivreg(as.formula(formula_iv), data),
             silent = TRUE
         )
         if (exists("iv_model")) {
             model_list[[length(model_list)+1]] <- iv_model
         }
         try(
-            feiv_model <- felm(as.formula(formula_fe_iv), data_frame),
+            feiv_model <- felm(as.formula(formula_fe_iv), data),
             silent = TRUE
         )
         if (exists("feiv_model")) {
