@@ -156,7 +156,7 @@ construct_configuration_df <- function() {
 
         use_configuration_file <- readline(prompt = "Yes (Y) or No (N) > ")
 
-        if (stri_startswith_fixed(use_configuration_file, tolower("y"))
+        if (stri_startswith_fixed(tolower(use_configuration_file), "y")
         ) {
 
             cat("Please enter the path to the MySQL configuration file:", "\n")
@@ -174,7 +174,7 @@ construct_configuration_df <- function() {
             break
 
         } else if (
-            stri_startswith_fixed(use_configuration_file, tolower("n"))
+            stri_startswith_fixed(tolower(use_configuration_file), "n")
         ) {
 
             cat("Please enter the username: ", "\n")
