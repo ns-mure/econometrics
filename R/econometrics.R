@@ -62,7 +62,7 @@ r_sql_econometrics <- function() {
 
     cat(
         paste(
-            "Please enter the column numbers containin the covariates, ",
+            "Please enter the column numbers containing the covariates, ",
             "one per line, and then hit enter/return to end: "
         ),
         "\n"
